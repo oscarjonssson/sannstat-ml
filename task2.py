@@ -15,13 +15,18 @@ Phi = np.vstack([np.ones_like(X1).ravel(), X1.ravel()**2, X2.ravel()**3]).T
 
 # Function to calculate outputs for a specific sigma value
 def generate_data(sigma_squared):
-    epsilon = np.random.normal(0, np.sqrt(sigma_squared), size=Phi.shape[0])
+    epsilon = np.random.normal(0, sigma_squared, size=Phi.shape[0])
     t = np.dot( Phi, w) + epsilon
-    return t, X1, X2
-
+    return t, X1.ravel(), X2.ravel()
 # Choose a sigma value for 3D scatter plot
 sigma_squared = 0.4
 t, flat_X1, flat_X2 = generate_data(sigma_squared)
+
+test_mask = (np.abs(flat_X1) > 0.3) & (np.abs(flat_X2) > 0.3)
+train_mask = ~test_mask
+
+
+
 
 # Plotting in 3D
 fig = plt.figure(figsize=(10, 8))
