@@ -20,50 +20,71 @@ def generate_data(sigma_squared):
     t = np.dot( Phi, w) + epsilon
     return t, X1.ravel(), X2.ravel()
 
-def evaluate_models(Phi_train, t_train, Phi_test, t_test):
+def frequentist_regression(Phi_train, t_train, Phi_test, t_test):
     # Beräkna viktade skattningar och MSE för Frequentist-modellen
     w_hat = inv(Phi_train.T @ Phi_train) @ Phi_train.T @ t_train
     t_pred_freq = Phi_test @ w_hat
     mse_freq = np.mean((t_test - t_pred_freq) ** 2)
+
     return mse_freq, w_hat
 
+def bayesian_regression(Phi_train, t_train, alpha, sigma_squared):
+    # Prior mean and covariance matrix of the weights
+    prior_mean = np.zeros(Phi_train.shape[1])  # Assuming a mean of 0
+    prior_covariance = np.eye(Phi_train.shape[1]) / alpha  # Prior covariance matrix
 
-def plot_data_and_predictions(X1, X2, t, t_pred_freq):
+    # Posterior covariance matrix
+    posterior_covariance = inv(inv(prior_covariance) + (1/sigma_squared) * Phi_train.T @ Phi_train)
+    # Posterior mean
+    posterior_mean = posterior_covariance @ ((1/sigma_squared) * Phi_train.T @ t_train + inv(prior_covariance) @ prior_mean)
+
+    # Predict using the posterior mean
+    t_pred_bayes = Phi_train @ posterior_mean
+    return t_pred_bayes, posterior_mean, posterior_covariance
+
+
+def plot_data_and_predictions(X1, X2, t, t_pred, title, alpha, sigma_squared):
     fig = plt.figure(figsize=(10, 8))
-    ax = fig.add_subplot(111, projection='3d')  # Using one subplot for both
+    ax = fig.add_subplot(111, projection='3d')
 
     # Plot data points
-    scatter = ax.scatter(X1, X2, t, color='blue', label='Actual Data Points', alpha=0.7)
+    ax.scatter(X1, X2, t, color='blue', label='Actual Data Points', alpha=0.7)
     
     # Plot predictions
-    scatter_pred = ax.scatter(X1, X2, t_pred_freq, color='red', label='pred_freq', alpha=0.7)
+    ax.scatter(X1, X2, t_pred, color='red', label=f'{title} Predictions', alpha=0.7)
     
-    ax.set_title("3D Visualization of Actual Data and Predictions")
+    if alpha is not None:
+        ax.set_title(f"{title} Predictions (α={alpha}, σ²={sigma_squared})")
+    else:
+        ax.set_title(f"{title} Predictions (σ²={sigma_squared})")
+        
     ax.set_xlabel('$x_1$')
     ax.set_ylabel('$x_2$')
     ax.set_zlabel('Output $t$')
     ax.legend()
     plt.show()
-
-
-    
+   
 def main():
-    # Choose a sigma value for 3D scatter plot
-    sigma_squared = 0.4
+    sigma_squared = 0.4  # Variance of the noise
+    alpha = 0.7  # values of the alpha parameter for the Gaussian prior
+
     t, X1, X2 = generate_data(sigma_squared)
 
-    # Skapa mask för att separera tränings- och testdata baserat på x1 och x2
     test_mask = (np.abs(Phi[:, 1]) > 0.3) & (np.abs(Phi[:, 2]) > 0.3)
     Phi_train, t_train = Phi[~test_mask], t[~test_mask]
     Phi_test, t_test = Phi[test_mask], t[test_mask]
 
-    # Evaluate the model with both training and testing datasets
-    mse_freq, w_hat = evaluate_models(Phi_train, t_train, Phi_test, t_test)
+    # Evaluate the Frequentist model
+    mse_freq, w_hat_freq = frequentist_regression(Phi_train, t_train, Phi_test, t_test)
+    t_pred_freq = Phi @ w_hat_freq
+    print(f'Sigma squared: {sigma_squared}, Frequentist MSE: {mse_freq}')
+    plot_data_and_predictions(X1, X2, t, t_pred_freq, "Frequentist", None, sigma_squared)
 
-    # Beräkna prediktioner för hela datasetet
-    t_pred_freq = Phi @ w_hat
-    # Visualisera data och prediktioner
-    plot_data_and_predictions(X1, X2, t, t_pred_freq)
+    # Evaluate the Bayesian model
+    t_pred_bayes, posterior_mean, posterior_covariance = bayesian_regression(Phi_train, t_train, alpha, sigma_squared)
+    mse_bayes = np.mean((t_test - Phi_test @ posterior_mean) ** 2)
+    print(f'Alpha: {alpha}, Bayesian MSE: {mse_bayes}')
+    plot_data_and_predictions(X1, X2, t, Phi @ posterior_mean, "Bayesian", alpha, sigma_squared)
 
 if __name__ == "__main__":
     main()
