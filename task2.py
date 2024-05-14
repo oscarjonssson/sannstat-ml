@@ -32,7 +32,7 @@ def frequentist_regression(Phi_train, t_train, Phi_test, t_test):
 def bayesian_regression(Phi_train, t_train, Phi_test, t_test, alpha, sigma):
     beta = 1.0 / (sigma ** 2)
     # Prior mean and covariance matrix of the weights
-    prior_mean = np.zeros(Phi_train.shape[1])
+    prior_mean = np.zeros(Phi_train.shape[1]) # vad vi tror att vikterna är innan vi har sett någon data
     prior_covariance = alpha * np.eye(Phi_train.shape[1]) 
     # Posterior covariance matrix
     posterior_covariance = inv(inv(prior_covariance) + beta * Phi_train.T @ Phi_train) #formel S_N = (S_0^-1 + beta * Phi^T * Phi)^-1 eller S_N^-1 = (S_0^-1 + beta * Phi^T * Phi) (26/28)
@@ -48,21 +48,30 @@ def bayesian_regression(Phi_train, t_train, Phi_test, t_test, alpha, sigma):
     return mse_bayes, pred_var_test, pred_var_train, pred_var_test, posterior_mean
 
 
-def plot_data_and_predictions(X1, X2, t, t_pred, title, alpha, sigma):
-    fig = plt.figure(figsize=(10, 8))
-    ax = fig.add_subplot(111, projection='3d')
+def plot_data_and_predictions(X1, X2, t, t_pred_freq, t_pred_bayes, sigma, alpha):
+    fig = plt.figure(figsize=(12, 6))  # Adjusted for better display of two subplots
 
-    # Plot data points
-    ax.scatter(X1, X2, t, color='blue', label='Actual Data Points', alpha=0.7)
-    
-    # Plot predictions
-    ax.scatter(X1, X2, t_pred, color='red', label=f'{title} Predictions', alpha=0.7)
-    
-    ax.set_title(f"{title} Predictions (Alpha={alpha}, Sigma={sigma})")
-    ax.set_xlabel('$x_1$')
-    ax.set_ylabel('$x_2$')
-    ax.set_zlabel('Output $t$')
-    ax.legend()
+    # Frequentist predictions
+    ax1 = fig.add_subplot(121, projection='3d')  # 121 - 1 row, 2 columns, 1st subplot
+    ax1.scatter(X1, X2, t, color='blue', label='Actual Data', alpha=0.6)
+    ax1.scatter(X1, X2, t_pred_freq, color='red', label='Frequentist Predictions', alpha=0.6)
+    ax1.set_title(f"Frequentist Regression (σ={sigma})")
+    ax1.set_xlabel('$x_1$')
+    ax1.set_ylabel('$x_2$')
+    ax1.set_zlabel('Output $t$')
+    ax1.legend()
+
+    # Bayesian predictions
+    ax2 = fig.add_subplot(122, projection='3d')  # 122 - 1 row, 2 columns, 2nd subplot
+    ax2.scatter(X1, X2, t, color='blue', label='Actual Data', alpha=0.6)
+    ax2.scatter(X1, X2, t_pred_bayes, color='green', label='Bayesian Predictions', alpha=0.6)
+    ax2.set_title(f"Bayesian Regression (σ={sigma}, α={alpha})")
+    ax2.set_xlabel('$x_1$')
+    ax2.set_ylabel('$x_2$')
+    ax2.set_zlabel('Output $t$')
+    ax2.legend()
+
+    plt.tight_layout()
     plt.show()
 
    
@@ -79,17 +88,15 @@ def main():
 
         mse_freq, w_hat = frequentist_regression(Phi_train, t_train, Phi_test, t_test)
         t_pred_freq = Phi @ w_hat
-        print(f'Sigma: {sigma}, Frequentist MSE: {mse_freq}')
-        plot_data_and_predictions(X1, X2, t, t_pred_freq, "Frequentist", None, sigma)
 
         alpha_values = [0.7, 1.5, 3.0]
         for alpha in alpha_values:
             mse_bayes, pred_var_test, pred_var_train, pred_var_test, posterior_mean = bayesian_regression(Phi_train, t_train, Phi_test, t_test, alpha, sigma)
             t_pred_bayes = posterior_mean.T @ Phi.T
-            print(f'Sigma: {sigma}, Alpha: {alpha}, Bayesian MSE: {mse_bayes}')
+            print(f'Sigma: {sigma}, Frequentist MSE: {mse_freq}, Bayesian MSE: {mse_bayes}')
+            plot_data_and_predictions(X1, X2, t, t_pred_freq, t_pred_bayes, sigma, alpha)
             print(f"Average Prediction Variance on Training Data: {np.mean(pred_var_train)}")
             print(f"Average Prediction Variance on Test Data: {np.mean(pred_var_test)}")
-            plot_data_and_predictions(X1, X2, t, t_pred_bayes, "Bayesian", alpha, sigma)
 
 if __name__ == "__main__":
     main()
