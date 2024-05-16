@@ -1,7 +1,6 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 from numpy.linalg import inv
 
 # Define the weights
@@ -93,10 +92,10 @@ def main():
         for alpha in alpha_values:
             mse_bayes, pred_var_test, pred_var_train, pred_var_test, posterior_mean = bayesian_regression(Phi_train, t_train, Phi_test, t_test, alpha, sigma)
             t_pred_bayes = posterior_mean.T @ Phi.T
-            print(f'Sigma: {sigma}, Frequentist MSE: {mse_freq}, Bayesian MSE: {mse_bayes}')
+            print(f'Sigma: {sigma}, Frequentist MSE: {mse_freq},\nSigma: {sigma}, Alpha: {alpha}, Bayesian MSE: {mse_bayes}')
             plot_data_and_predictions(X1, X2, t, t_pred_freq, t_pred_bayes, sigma, alpha)
             print(f"Average Prediction Variance on Training Data: {np.mean(pred_var_train)}")
-            print(f"Average Prediction Variance on Test Data: {np.mean(pred_var_test)}")
+            print(f"Average Prediction Variance on Test Data: {np.mean(pred_var_test)}\n")
 
 if __name__ == "__main__":
     main()
